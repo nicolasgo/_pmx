@@ -1,0 +1,12 @@
+##not operational. Just a sample of how to create the grids
+devices_df = devices_df.sort()
+devices_df.index.name = 'cohort'
+X, Y = np.meshgrid( range(len(devices_df.columns)), range(len(devices_df.index)))
+
+z = devices_df.values
+from mpl_toolkits.mplot3d import Axes3D
+fig = plt.figure(figsize = (16,12))
+ax = fig.add_subplot(111, projection='3d')
+ax.scatter(X, Y, z, zdir='z', c= 'red')
+plt.yticks(range(len(devices_df.index)), devices_df.index, size='small', rotation = 0)
+plt.xticks(range(len(devices_df.columns)), devices_df.columns, size='small', rotation = 90)
