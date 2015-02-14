@@ -1,0 +1,12 @@
+# /usr/bin/csh
+
+raw="/home/nicolas/survey`date "+%y%m%d"`"
+filename="/home/nicolas/survey`date "+%y%m%d"`.csv"
+echo $filename
+mysql -uroot -ptelcel@iWeb smp -e "SET NAMES utf8; select * from zz_survey" >$raw
+cat $raw | sed 's/\t/","/g;s/^/"/;s/$/"/;s/\n//g' >$filename
+
+#mysql -uroot -ptelcel@iWeb smp -e "SET NAMES utf8; select * from zz_survey INTO OUTFILE '/home/nicolas/logs/survey1.csv' FIELDS TERMINATED BY ',' ENCLOSED BY '\"' LINES TERMINATED BY '\n';" 
+#cat $raw | sed 's/\t/","/g;s/^/"/;s/$/"/;s/\n//g' >$filename
+
+

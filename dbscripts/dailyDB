@@ -1,0 +1,11 @@
+#!/bin/sh
+
+filename="/home/nicolas/dailyDB`date "+%y%m%d"`.txt"
+echo $filename
+#chmod 666 $filename
+
+if mysql -uroot -ptelcel@iWeb smp -e "source /home/nicolas/dailyDB.sql;" >$filename; then
+  echo 'success'
+else
+  echo 'something went wrong in sql'
+fi

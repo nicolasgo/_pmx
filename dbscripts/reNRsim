@@ -1,0 +1,11 @@
+# /usr/bin/csh
+# This script is launched every day at 13:30 EST 
+starttime="`date "+%Y-%m-%d 00:00:00"`"
+echo $starttime
+
+campaign-create "reNRsim" "$starttime" "Con Plugger consulta tu Facebook y Twitter GRATIS desde tu Telcel! Registrate ahora y navega GRATIS en {url}" "http://mx.plugger.com" "use smp; set @_frT= date(now())- interval 1 day; set @_toT= timestamp(date(now())); select distinct msisdn from smp_usage_log left join smp_user using(msisdn) where action=9 and time >@_frT and time < @_toT and state is NULL;"
+
+# this was to test only. the phone is a 3FS phone:
+#campaign-create "testNick" "$starttime" "Hi, this is just a test, please ignore. Nicolas.. {url}" "http://mx.plugger.com" "select 525554043904 as msisdn;"
+
+

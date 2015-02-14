@@ -1,0 +1,11 @@
+# /usr/bin/csh
+raw="/home/nicolas/dash`date "+%y%m%d"`"
+filename="/home/nicolas/dash`date "+%y%m%d"`.csv"
+echo $filename
+mysql -uroot -ptelcel@iWeb smp -e "source /home/nicolas/dd.sql" >$raw
+cat $raw | sed 's/\t/","/g;s/^/"/;s/$/"/;s/\n//g' >$filename
+
+echo "csv file for the AMX dashboard" | mailx -a $filename -s "Dash from :p" nicolas@pragmex.com
+
+mysql -uroot -ptelcel@iWeb smp -e "select distinct u.msisdn from zzlog410 left join smp_user as u using(msisdn) where u.rel_operator_id=10 and u.msisdn not like '5251%' and state=1;" | grep -v msisdn >mau
+

@@ -1,0 +1,190 @@
+#!/usr/bin/python
+
+import sys 
+import operator
+#import dateutil.parser
+import datetime
+
+if len (sys.argv) != 2 :
+    print "Usage: plog filename.log "
+    sys.exit (1)
+
+
+inputfile = sys.argv[1]
+
+hoursum=[0]*24
+u2usum=[0]*24
+oksum=[0]*24
+otros=[0]*24
+onetime=[0]*4
+
+undefined = {} # to store all undefined strings 
+results ={}
+comments = {}
+
+def inc_results(key,text=0):
+  if key in results:
+    results[key] += 1
+  else:
+    results[key] = 1
+    if text is not 0:
+      print key, ':== ', text[text.find('body')+6:].rstrip()
+  return
+
+def inc_comments(key,text=0):
+  if key in comments:
+    comments[key] += 1
+  else:
+    comments[key] = 1
+    if text is not 0:
+      print key, ':== ', text[text.find('body')+6:].rstrip()
+  return
+
+
+
+with open(inputfile, 'r') as f:
+  for line in f:
+    if 'Worker started with payload:' not in line :
+      continue
+    array = line.split('{')
+    i=1
+    part2=''
+    while i < len(array) :
+      part2 += array[i]
+      i += 1
+    #time= dateutil.parser.parse(array[0].split(' ')[2])
+    tt=array[0].split(' ')[2]
+    time=datetime.datetime.strptime( tt.split('+')[0], "%Y-%m-%dT%H:%M:%S" )
+    body=part2.split('\"')
+    msisdn=body[5]
+    text=body[9]
+    if msisdn == 'body':
+      msisdn = body[4].split(';')[1].split(':')[1]  #;i:526521010013;s:4: 
+    elif msisdn == 'rcpt':
+      msisdn = body[7]
+      text=body[11] 
+    text=part2 
+
+    hour=time.hour
+    hoursum[hour]=hoursum[hour]+1
+
+    if 'Hola' in text and 'Bienvenido a Plugger!' in text:
+      inc_results('sdk.message.sms.user.activated_welcome', text)
+    elif 'Bienvenido a Plugger!' in text:
+      inc_results('sdk.message.sms.user.register', text)
+    elif 'para conectar tus redes' in text:  # Hola jesy! Visita http://plg.gr/mx-yycgfo para conectar tus redes sociales.
+      inc_results('sdk.message.sms.connect_sns')
+    elif ('Responder aqui: http' in text or ':"De ' in text) or ':"From ' in text:
+      inc_results('sdk.sms.profile.inbox_new.message',text)
+
+    # The next three are comments on content uploads
+    elif 'Tu foto ha sido comentada' in text or 'Your photo was commented by' in text:
+      inc_results('sdk.notify.content_commented', text)
+      idx=text.find('plg.gr/mx-')+7
+      inc_comments(text[idx:idx+10]+str(msisdn)) #plg.gr/mx-kzn215
+    elif 'se refirio a la foto' in text:
+      inc_results('sdk.notify.new_content_comment', text)
+      idx=text.find('plg.gr/mx-')+7
+      inc_comments(text[idx:idx+10]+str(msisdn)) #plg.gr/mx-kzn215
+    elif 'comento en su propia foto' in text:
+      inc_results('sdk.notify.new_content_comment_self', text)
+      idx=text.find('plg.gr/mx-')+7
+      inc_comments(text[idx:idx+10]+str(msisdn)) #plg.gr/mx-kzn215
+
+    elif 'tambien comento sobre' in text or 'also commented on ' in text:
+      inc_results('sdk.notify.new_status_comment', text)
+    elif 'comento en su propio Status' in text: # #_*BeEkeR:%_V_p;) /!00%u... comento en su propio Status. Responder ahora en http://plg.gr/mx-7zaruk SIN COSTO
+      inc_results('sdk.notify.new_status_comment_self')
+    elif 'ha actualizado su estado' in text or 'updated status to' in text:
+      inc_results('sdk.following.status_update',text)
+    elif 'ha subido esta imagen' in text or 'has uploaded this image:' in text:
+      inc_results('sdk.following.media_upload', text)
+    elif 'nueva imagen. Compruebe' in text or 'sends you new image. Check here:' in text:
+      inc_results('sdk.sms.profile.inbox_new.image  ')
+    elif 'otros te enviaron mensajes en Plugger' in text or 'others sent you messages on Plugger' in text:
+      inc_results('sdk.sms.profile.inbox_new.message.aggregated')
+    elif 'ha solicitado tu amistad' in text or 'has requested your friendship' in text or 'quiere ser tu amigo. Puedes aceptar' in text:
+      inc_results('sdk.message.sms.request.friendship', text)
+    elif 'ha aceptado tu amistad' in text or 'has accepted your friendship' in text:
+      inc_results('sdk.message.sms.friendship.accepted',text)
+    elif 'Activa tu cuenta' in text:
+      inc_results('sdk.message.sms.user.activated', text) # when we 1st send the pw
+    elif 'Su estatus fue publicado correctamente' in text or 'Your status was successfully published to' in text: # Su estatus fue publicado correctamente en Plugger, Facebook.
+      inc_results('sdk.sms.sns.status.success')
+    elif 'se ha cargado exitosamente' in text or 'was successfully uploaded to' in text: #Tu contenido IMG_20131219_110006.jpg se ha cargado exitosamente en plugger, Facebook.
+      inc_results('sdk.sms.sns.upload_success')
+    elif 'via SMS. Sigue' in text or 'You are now following ' in text: # SMS+
+      inc_results('sdk.following.follow.start', text)
+    elif 'Tu estado ha sido comentado' in text or 'Your status was commented by' in text:
+      inc_results('sdk.notify.status_commented')
+    elif 'Su nueva contrase' in text:
+      inc_results('web.mobile.view.lost_password.sms', text)
+    elif 'se ha cargado no exitosamente' in text: # Tu contenido I1387471156.jpg se ha cargado no exitosamente en Facebook.
+      inc_results('sdk.sms.sns.upload_failed',text)
+    elif 'no se ha cargado' in text: # El contenido IMG476.jpg no se ha cargado en 9798. Por favor intenta nuevamente.
+      inc_results('error')
+    elif 'no fue exitoso.' in text: #La publicacion de tu estatus en Facebook no fue exitoso.
+      inc_results('error')
+    elif 'no se pudo cargar' in text or 'El contenido no se puede cargar' in text: #
+      inc_results('error')
+    elif 'Acabas de APAGAR las notificaciones' in text or 'Acabas de ENCENDER las notificaciones' in text:
+      inc_results('APAGAR y ENCENDER')
+    elif 'Por favor, reenvia el SMS; el' in text: # Por favor, reenvia el SMS; el nombre de tu cuenta debe tener mas de un caracter
+      inc_results('dk.message.sms.error.activation.too_short')
+    elif 'Plugger detecto un problema con la conexion a Twitter' in text:
+      inc_results('sdk.sms.sns.token_failed', text)
+    elif 'Publishing status on' in text and 'failed' in text:
+      inc_results('error')
+    elif 'Navegar en plugger.com es GRATIS desde tu Telcel.' in text:
+      inc_results('campaign 1', text)
+    elif 'Con Plugger consulta tu Facebook' in text:
+      inc_results('campaign 2', text)
+    else :
+      inc_results('**ALL THE REST**')
+      undefined[text[text.find('body')+6:]] =1
+
+  for x in undefined.keys():
+    print x.rstrip()
+
+  print('\n'.join('{}: {}'.format(*k) for k in enumerate(hoursum)))
+
+  for k,v in sorted(results.items()):
+    print k,': ',v
+
+  print '----top comments',len(comments)
+  c2={}
+  c3={}
+  total=0;
+  for k,v in comments.items():
+    if v in c3:
+      c3[v] += 1
+    else:
+      c3[v] = 1
+    
+    if v > 3:
+      c2[k] = v
+      total += v
+    
+#  dd= dict(sorted(comments.iteritems(), key=operator.itemgetter(1), reverse=True)[:10])
+#  for k,v in sorted(dd.iteritems(), key=operator.itemgetter(1)):
+#  for k,v in sorted(dd,key=dd.get, reverse=True):
+  
+  print '----top comments',len(c2)
+  print 'total removed SMS:',total
+
+  total=0
+  for x in hoursum:
+    total += x
+
+  for k,v in sorted(c3.iteritems(), key=operator.itemgetter(1)):
+    print k,': ',v
+
+
+  for k,v in sorted(results.iteritems(), key=operator.itemgetter(1)):
+    print k,': ',v,"%.2f" % (100*v/float(total)), '%'
+
+  print ''
+
+  print 'hoursum: ',total
+
+

@@ -1,0 +1,8 @@
+#!/bin/sh
+
+mysqldump -uroot -ptelcel@iWeb smp zzuser3 zzuser2 zzuserlog2 zzu2u zzfollowing zzfriends zzcontent2 >/home/lmcnigo/prasad/plugger.sql
+gzip /home/lmcnigo/prasad/plugger.sql
+
+sftp -b /dev/stdin pluggeradmin@198.72.118.117 <<EOF
+mput /home/lmcnigo/prasad/plugger.sql.gz
+EOF

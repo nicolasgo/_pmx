@@ -1,0 +1,8 @@
+# /usr/bin/csh
+raw="/home/nicolas/sim`date "+%y%m%d"`"
+filename="/home/nicolas/sim`date "+%y%m%d"`.csv"
+echo $filename
+mysql -uroot -ptelcel@iWeb smp -e "source /home/nicolas/ddsim.sql" >$raw
+cat $raw | sed 's/\t/","/g;s/^/"/;s/$/"/;s/\n//g' >$filename
+
+cat $raw | mailx -a $filename -s "Sim usage from :p" nicolas@pragmex.com agustin.sanchez@ericsson.com tom.poindexter@ericsson.com

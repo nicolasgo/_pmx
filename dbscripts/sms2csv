@@ -1,0 +1,131 @@
+#!/usr/bin/python
+
+#
+# sms2csv translates the sms log files into a csv
+#
+#
+
+'''
+TODO:
+  FEAT:
+  
+  BUG: 
+    
+'''
+
+import os,sys 
+import csv
+import fileinput
+from optparse import OptionParser
+
+parser = OptionParser()
+parser.add_option('-d', '--debug',  action="store_true", dest="debug", default=False,
+    help='Adds debug traces.')
+parser.add_option('-w', '--write_header', default=False, action="store_true",
+    help='Write a csv header. The default is False.')
+
+options, files = parser.parse_args()
+
+def trace(line):
+  if options.debug:
+    sys.stderr.write(line+'\n')
+
+def translate_sms_old(line,fields_to_keep):
+#    print line
+    time=line.split(' ')[2]
+    sms=line.split('{')[1][:-3]
+#    print time,sms
+    result = sms.split(';')
+#    print result
+    event={'time':time}
+    for i in range(0,len(result),2): # iterate through name,value pairs
+        name=result[i].split('\"')[1]
+        if name in fields_to_keep: # skip unknown names
+            s_value= result[i+1].split(':')
+            if s_value[0]=='i':
+                value = int(s_value[1]) 
+            elif s_value[0]=='s':
+                if name == 'rcpt0':
+                    value = users[int(s_value[2][1:-1])]
+                else:
+                    value = s_value[2][1:-1]
+            else :
+                continue
+            event[name]=value
+    return event
+
+def read_payload(sms):
+    try:
+        idx = sms.index(';')+1
+    except:
+        idx=0
+        
+    if idx >0:
+        name = sms.split('\"')[1]
+        value_str=sms[idx:]
+        if value_str[0]=='s':
+            last_colon=value_str[2:].index(':')  # find the 2nd colon
+            str_len = int(value_str[2:][:last_colon]) # get the size of the string
+            end_idx=2+last_colon+2+str_len+2
+            value = value_str[last_colon+4:][:str_len]
+            idx+=end_idx
+#            print idx
+        elif value_str[0]=='i':
+            last_colon=value_str[2:].index(';')  
+            end_idx=2+last_colon+1
+            idx+=end_idx
+            value=int(value_str[2:][:last_colon])
+#            print idx
+        elif value_str[0]=='N':
+            value=None
+            idx+=2
+#        idx = sms[idx:].index(';')+1
+    else:
+        return None
+#    if sms[0]=='i':
+
+    return ({name:value},sms[idx:])
+
+def translate_sms(line,fields_to_keep):
+#    print line
+    time=line.split(' ')[2]
+    sms_part=line.split('a:5:{')[1][:-2]
+
+    event={'time':time}
+    while len(sms_part)>0 :
+        tple =read_payload(sms_part)
+        if tple is not None:
+            part = tple[0]
+            if part.keys()[0] in fields_to_keep:
+                event.update(part) 
+        sms_part=tple[1]
+    return event
+
+
+try:
+  start=0
+  buf =''
+
+  root='/home/nicolas/logs/'
+  if not os.path.isdir(root):
+    root='/Users/nicolas/logs/'
+
+  event_list = []
+  sms_fields = ['time', 'rcpt', 'type']#, 'operator']
+  csvwriter = csv.DictWriter(sys.stdout, delimiter=',', fieldnames=sms_fields,quotechar='\"')#,quoting=csv.QUOTE_NONNUMERIC)
+
+  if options.write_header:
+    csvwriter.writeheader()
+
+  for line in fileinput.input(files):
+    try:
+      event=translate_sms(line,sms_fields)  
+      csvwriter.writerow(event)
+    except KeyError:
+      continue
+    except:
+      trace('WARNING: '+line)
+
+except:
+  print trace('ERROR: '.join(files))
+  raise  

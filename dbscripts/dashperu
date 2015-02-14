@@ -1,0 +1,21 @@
+# /usr/bin/csh
+filename="/home/nicolas/activePeru`date "+%y%m%d"`.csv"
+echo $filename
+#thetime="`date "+%y-%m-01"`"
+#mysql -uroot -ptelcel@iWeb smp -e "select distinct u.msisdn as user,state from smp_usage_log left join smp_user as u using(msisdn) where time < '"$thetime"' and u.rel_operator_id=19;" | sed 's/\t/","/g;s/^/"/;s/$/"/;s/\n//g ' >$filename
+
+# Special request from Yaremi
+#fromtime="2014-08-01"
+#thetime="`date "+%Y-%m-01"`"
+#mysql -uroot -ptelcel@iWeb smp -e "select msisdn,state,count(if(action= 15 AND miscstr3='mobile',1,null))as wap, count(if(action= 15 AND miscstr3='web',1,null))as web, count(if(action=16 and miscstr3='mms',1,null)) as mms, count(if(action=16 and miscstr3='sms',1,null)) as sms, count(*) as act from smp_usage_log left join smp_user as u using(msisdn) where joined>'2012-10-15 05' and joined < '2012-10-19 05' and u.rel_operator_id=19 group by msisdn with rollup;" | sed 's/\t/","/ g;s/^/"/;s/$/"/;s/\n//g' >$filename
+#
+#mysql -uroot -ptelcel@iWeb smp -e "select msisdn,state,count(if(action= 15 AND miscstr3='mobile',1,null))as wap, count(if(action= 15 AND miscstr3='web',1,null))as web, count(if(action=16 and miscstr3='mms',1,null)) as mms, count(if(action=16 and miscstr3='sms',1,null)) as sms, count(*) as act from smp_usage_log where time > '"$fromtime"' and time < '"$thetime"' and rel_operator_id=19 group by msisdn with rollup;" | sed 's/\t/","/ g;s/^/"/;s/$/"/;s/\n//g' >$filename
+
+#mysql -uroot -ptelcel@iWeb smp -e "select msisdn,state,count(if(action= 15 AND miscstr3='mobile',1,null))as wap, count(if(action= 15 AND miscstr3='web',1,null))as web, count(if(action=16 and miscstr3='mms',1,null)) as mms, count(if(action=16 and miscstr3='sms',1,null)) as sms, count(*) as act from zzlog309 left join smp_user as u using(msisdn) where time > '"$fromtime"' and time < '"$thetime"' and u.rel_operator_id=19 group by msisdn with rollup;" | sed 's/\t/","/ g;s/^/"/;s/$/"/;s/\n//g' >$filename
+mysql -uroot -ptelcel@iWeb smp -e "select msisdn,state,count(if(action= 15 AND miscstr3='mobile',1,null))as wap, count(if(action= 15 AND miscstr3='web',1,null))as web, count(if(action=16 and miscstr3='mms',1,null)) as mms, count(if(action=16 and miscstr3='sms',1,null)) as sms, count(if(action in (9,10,11,12), 1, null)) as sb, count(*) as act from zzlog501 left join smp_user as u using(msisdn) where u.rel_operator_id=19 group by msisdn with rollup;" | sed 's/\t/","/ g;s/^/"/;s/$/"/;s/\n//g' >$filename
+
+gzip -f $filename
+
+(echo "please find in attached file a report on all movements last month in Peru") | mailx -a $filename.gz -s "Datos de uso de Plugger Peru" nicolas@pragmex.com
+
+rm -f $filename

@@ -1,0 +1,6 @@
+# /usr/bin/csh
+# This script is launched every day at 14:30 EST 
+
+mysql -uroot -ptelcel@iWeb smp -e "select rel_campaign_id as id,count(*) as sms,count(distinct if(last_seen>'2013-06-14',recipient,NULL))as seen,count(distinct if(last_seen>'2013-06-14',recipient,NULL))/count(distinct recipient)*100 as success, title,text from smp_campaign_track left join smp_user on recipient=msisdn left join smp_campaign on rel_campaign_id=campaign_id where rel_campaign_id>1080 group by rel_campaign_id order by id desc limit 8;" | mailx -s "Retention engine" nicolas@pragmex.com
+
+

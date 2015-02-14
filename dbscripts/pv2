@@ -1,0 +1,367 @@
+#!/usr/bin/python
+
+#
+# PV parses the plugger nginx access logs to compute user sessions
+#
+
+# TODO: compute POSTs (search, uploads etc)
+
+import sys 
+import operator
+import datetime
+from collections import Counter
+import fileinput
+from optparse import OptionParser
+import binascii
+import socket
+
+import re
+
+#
+# some variables
+# Global variables
+
+#coverage = 100 # a number from 1 to 100 giving the % of users to profile
+#session_length=20*60 # session length in seconds
+
+pageviews = Counter()
+
+ONEUSER=False # will be True if -u option is ON
+coverage = 100 # a number from 1 to 100.
+session_length=30*60 # session length in seconds
+
+hoursum=[0]*24
+
+undefined = {} # to store all undefined strings 
+users = Counter()
+userdata = {}
+userlist = Counter()
+intervals = {} # for the time filters intervals (-time option)
+output = sys.stdout
+
+notneeded = ['apple-touch-icon-57x57.png','static','favicon.ico','ga','facebook','twitter','proxy','apple-touch-icon-72x72.png','apple-touch-icon-114x114.png','apple-touch-icon-144x144.png']
+
+##
+## Here we go!
+##
+
+total =0 # counts the total number of pages with / or 302
+ 
+parser = OptionParser()
+parser.add_option('-d', '--debug',
+    help='Activates tracing.')
+parser.add_option('-o', '--output',
+    help='Specifies the output file.  The default is stdout.')
+parser.add_option('-f', '--filter',
+    help='Specifies the file containing the msisdn to filter. The default is no filter list.')
+parser.add_option('-u', '--user',
+    help='Filters that filters anything but this user. The default is no user filter.')
+parser.add_option('-t', '--time',
+    help='Filters based on time. Time is specified in comma separated hours (12,13,14), or hour intervals (12-14) The default is no time filter.')
+parser.add_option('-s', '--summary',
+    help='List a summary of the top. The default is YES.')
+parser.add_option('-l', '--session_length',
+    help='The session length in minutes. Default is 20 minutes')
+parser.add_option('-p', '--coverage',
+    help='A number from 1 to 100 to define the % of users to scan. The default coverage is 100.')
+
+
+options, files = parser.parse_args()
+
+if options.output and options.output != '-':
+   output=sys.stdout = open(options.output, 'w')
+
+if options.coverage and options.coverage != '-':
+  coverage=int(options.coverage)
+  if coverage < 1:
+    coverage=1
+  elif coverage > 100:
+    coverage=100
+
+# Options to 
+if options.time and options.time != '-':
+  for s in options.time.split(',') :
+    t=s.split('-')
+    trace( t )
+    if len(t)==2:
+      for x in range(int(t[0]),int(t[1])+1):
+        intervals[x]=1
+    else :
+      intervals[int(t[0])]=1
+
+if options.session_length and options.session_length != '-':
+  session_length= int(options.session_length)*60 # store the session length in seconds
+
+# The user option has priority over the filter option
+if options.user and options.user != '-':
+  userlist[int(options.user)] += 1
+  ONEUSER=True
+else:
+  if options.filter and options.filter != '-':
+    for line in fileinput.input(options.filter):
+      fltrd=line.split(':')[0].strip()
+      trace('filtering'.join(fltrd))
+      userlist[int(fltrd)] +=1
+
+def trace(line):
+  if options.debug:
+    sys.stderr.write(line+'\n')
+
+
+# print options:
+trace('coverage: '+str(coverage))
+trace('time intervals: '+str(intervals))
+if ONEUSER:
+  trace('ONEUSER:'.join(str(ONEUSER),' msisdn=',userlist.keys()[0]))
+else:
+  trace('ONEUSER: '.join(str(ONEUSER)))
+
+if ONEUSER==False and len(userlist.keys())>0:
+  trace('Filter list is filtering'+len(userlist.keys())+'users')
+
+def parse_log(line):
+    line=line.strip()
+
+    retcode=0 # invalid, it means that we could not parse this string
+    useragent = 'unknown'
+    ip='0.0.0.0'
+    msisdn=path=''
+    time=datetime.datetime(1970,1,1)
+    array=[]
+
+    if not (line.startswith('#') or len(line)==0) :
+        first = line.split(' [')
+
+        if len(first) < 2:  # SHORTEST FORMAT #(no ip address, no useragent, no retcode)
+            retcode=200 # Assumption..
+            array= line.split(' ')
+            if len(array)>2 :
+                msisdn=array[2]
+        elif len(first[1].split('\"')) < 2 : # SHORT FORMAT
+            ip=first[0].split(' ')[0]
+            array = first[1].split(' ')
+        #      print 'ARRAY:\n',array
+            if len(array)>8 :
+                msisdn=array[8].strip()
+        else : # LONG FORMAT
+            ip=first[0].split(' ')[0]
+            array = first[1].split('\"')
+            
+            trace('ARRAY:'+', '.join(array))
+            
+            useragent = array[5]
+            if len(array)>6 :
+                msisdn=array[6].strip().split(' ')[0]
+
+        #      print 'ARRAY:\n',array
+            array = array[0]+array[1]+array[2]+msisdn
+            array = array.split(' ')
+
+        if len(array)>5 :
+            path = array[3]
+            retcode = int(array[5])
+        else :
+            path = array[1].strip()
+            retcode=200 # (assumed to be 200)
+
+        if msisdn == str('-'): # The access_log writes a '-' if the msisdn is unknown
+            msisdn=88 # 88 will be used to count the % of unknown user entries in the log
+	    #print >> sys.stderr, 'msisdn 88'
+        else:
+            if len(msisdn)>0 and re.match("^[0-9]*$", msisdn) :
+                msisdn = int(msisdn)
+            else:
+                msisdn=11 # 11 will be used to count the number of log entries without a msisdn
+	    	#print >> sys.stderr, 'msisdn 11'
+
+        try :
+            time= datetime.datetime.strptime(array[0].split(' ')[0],"%d/%b/%Y:%H:%M:%S" )
+        except:
+            trace(line)
+            trace(''+array)
+            raise
+
+    return time,msisdn,useragent,path,retcode,binascii.hexlify(socket.inet_aton(ip))
+
+# <codecell>
+
+#
+# inc_pageviews increments the number of pageviews for each root and store that in the pageviews Counter
+# inputs:
+#    - path: the url path (e.g., /profile/22084494/inbox)
+def inc_pageviews(path) :
+    path= path.split('/')
+    root=path[1] # all paths start with a '/', so item #1 is what is after the first slash
+    if root not in notneeded:
+        if root.startswith('?') :
+            root='__qparam__'
+        elif root.startswith('profile') : #profile is too vague so we need to add the 3rd component
+            try:
+                part='/'+path[3].split('?')[0]
+                root=part[1:]
+            except:
+                pass
+
+        root = root.split('?')[0]
+
+        pageviews[root] += 1
+
+    else :
+        root=0
+
+    return root
+
+# <codecell>
+
+# 
+# keep() applies the desired filter and returns True if we should monitor that record
+#
+def keep(time,msisdn,useragent,path,retcode) :
+    keep_it=True
+    if retcode == 0 or retcode <> 200:
+        keep_it=False
+#        print 'F1'
+
+    # filter out any hour that was not mentioned in the intervals given by the -time option
+    if keep_it and len(intervals) > 0 :
+        keep_it=(time.hour in intervals)
+#        print 'F2'
+    
+    if keep_it :
+        keep_it=(int(str(msisdn/47)[-2:]) < coverage) # is True when the last 2 msisdn digits are lower than desired coverage
+ 
+    if keep_it :
+        # Additional filter to keep only msisdn in the --filter list (option)
+        keep_it= len(userlist)==0 or (len(userlist)>0 and userlist[msisdn] != 0)
+#        print 'F4',keep_it,len(userlist)
+        
+    return keep_it
+
+# <codecell>
+
+pages_to_count=['inbox', 'mymedia', 'conversaciones', 'activities', 'home', 'friends', 'info', 'media', 'upload', 'avatar', 'publish', 'help']
+def print_pagecounts(output, pages) :
+    for k in pages_to_count :
+        print >>output, '%d,'%(pages[k]),
+    
+def print_header(output) :
+    print >>output, 'msisdn, time, duration, ip, pv, variety, landpage, device,',
+    for i in range(0,len(pages_to_count)) :
+        print >>output, '%s,'%(pages_to_count[i][:5]),
+    print >>output, 'ua'
+        
+
+def print_oneuser(output, msisdn, count) :
+    d=userdata[msisdn]
+    d['session']= sorted(d['session'],key=lambda s: s['time']) # sort sessions by time otherwise this is messy
+
+    for s in d['session'] :
+        device='0'
+        idx=s['ua'].find('ndroid')
+        if idx>0 :
+            device=s['ua'][idx-1:idx+11].strip(',')
+            
+        print >>output, '%s, %s, %s, %8s,'%(msisdn,s['time'], s['duration'], s['ip'] ),
+        print >>output, '%3d,%d,%-6s,%s,' % (s['pv'], len(s['pages']), '/'+s['path'][:5],device),
+        print_pagecounts(output, s['pages'])
+        print >>output, '\"'+s['ua']+'\"'
+
+
+# 
+# targetcount: only prints users with at least targetcount pageviews
+# limit: limits the number of users to print
+#
+# output is csv-like
+# 
+def print_users(output,targetcount=0,limit=None) :
+    print_header(output) # csv header
+
+    for msisdn, count in users.most_common(limit) :
+        if msisdn > 10: # msisdn <1000 are for internal use.
+            if count < targetcount :
+                break
+            print_oneuser(output,msisdn,count)
+
+
+
+
+#
+# add_user() to the users Counter and computes the session
+# msisdn: msisdn of the user
+# time: time of the event
+# pathroot: root of the url path (e.g., /home, /profile etc)
+#
+def add_user(msisdn, time, pathroot, useragent, ip) :
+    if msisdn > 10 : # msisdn below 1000 are for error codes. all msisdn are fairly large numbers: 525145946440
+        users[msisdn] += 1
+
+    if msisdn not in userdata : # create the first session entry (min session is 10 secs)
+        session={'time':time,'pv':1,'duration':10,'path':pathroot, 'ip':ip, 'ua':useragent, 'pages':Counter()} 
+        session['pages'][pathroot] +=1
+
+#        print '1st session:',session
+        userdata[msisdn]={'time':time,'sessioncount':1,'session':[session], 'total_duration':0}
+
+    else : 
+        d=userdata[msisdn]
+        delta=(time-d['time']).total_seconds()
+        if delta < 0 : # Kludge: delta may be negative because the input logs is the concatenation of multiple daily logs...
+            delta = session_length*2 # ...in that case, we must ensure that a new session is created.
+        d['time']=time
+
+#        print 'add_user:',msisdn,time,delta,'secs',pathroot
+
+        if delta > session_length : # we need to create a new session
+            newsession={'time':time,'pv':1,'duration':10,'path':pathroot, 'ip':ip, 'ua':useragent, 'pages':Counter()}
+            newsession['pages'][pathroot] +=1
+            d['session'].append(newsession)
+            d['sessioncount']=d['sessioncount']+1
+            if ONEUSER : # in ONEUSER mode, the tool is more verbose and tracks all user moves
+                print 'new session:',newsession
+        else : # we continue the current session
+            d['total_duration'] += delta
+            session=d['session'][-1] # get the last session
+            session['duration'] = int((time-session['time']).total_seconds())
+            session['pv'] +=1
+            session['pages'][pathroot] +=1
+
+            if ONEUSER :
+                print session
+
+
+# <headingcell level=2>
+
+# Input parameters for PV
+
+##
+## Here we go!
+##
+total =0 # counts the total number of pages with 200 or 302
+
+for line in fileinput.input(files) :
+    try :
+        time,msisdn,useragent,path,retcode,ip = parse_log(line)
+
+        if keep(time,msisdn,useragent,path,retcode) :
+            if retcode == 200 or retcode==302: # the logs comprise a mix of hits (like 303 redirects); we keep only the 200
+                total += 1
+
+            pathroot=inc_pageviews(path)
+            
+            if pathroot != 0 :
+                hour=time.hour
+                hoursum[hour]=hoursum[hour]+1
+                add_user(msisdn,time,pathroot, useragent, ip)
+                
+            users[0] += 1 # user[0] counts all pageviews regardless if the patg is right
+
+    except :
+        print 'ERROR:',line
+        #fileinput.close()
+        raise  
+
+# Output
+
+print_users(output) 
+
+

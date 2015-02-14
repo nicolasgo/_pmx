@@ -1,0 +1,12 @@
+#!/bin/sh
+
+filename="/home/nicolas/zzMAU`date "+%y%m%d"`.txt"
+echo $filename
+#chmod 666 $filename
+
+if mysql -uroot -ptelcel@iWeb smp -e "source /home/nicolas/zzzMAU.sql;" >$filename; then
+  echo 'done'
+
+else
+  echo 'something went wrong in sql'
+fi

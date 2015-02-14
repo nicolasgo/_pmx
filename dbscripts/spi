@@ -1,0 +1,4 @@
+# /bin/csh
+#mysqladmin -uroot -ptelcel@iWeb proc stat | grep service_user_id
+mysqladmin -uroot -v -ptelcel@iWeb proc stat 2>/dev/null | grep -v Sleep 
+
