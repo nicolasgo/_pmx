@@ -1,0 +1,96 @@
+# Edit this file to introduce tasks to be run by cron.
+# 
+# Each task to run has to be defined through a single line
+# indicating with different fields when the task will be run
+# and what command to run for the task
+# 
+# To define the time you can provide concrete values for
+# minute (m), hour (h), day of month (dom), month (mon),
+# and day of week (dow) or use '*' in these fields (for 'any').# 
+# Notice that tasks will be started based on the cron's system
+# daemon's notion of time and timezones.
+# 
+# Output of the crontab jobs (including errors) is sent through
+# email to the user the crontab file belongs to (unless redirected).
+# 
+# For example, you can run a backup of all your user accounts
+# at 5 a.m every week with:
+# 0 5 * * 1 tar -zcf /var/backups/home.tgz /home/
+# 
+# For more information see the manual pages of crontab(5) and cron(8)
+# 
+# m h  dom mon dow   command
+
+PATH=/home/nicolas/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games
+
+MAILTO=nicolas@pragmex.com
+#nicolasg123@gmail.com
+#ng@pragmex.com
+
+# dailyDB
+03 0 * * * /home/nicolas/bin/dailyDB
+# daily stats
+5 6 * * * /home/nicolas/bin/daily
+0 7 * * 1 /home/nicolas/bin/zzMAU
+3 */8 * * * /home/nicolas/bin/zzMAU
+
+#39 14 * * * /home/nicolas/logs/access_logs/catpv_loop catpv_loop.in >>/home/nicolas/logs/access_logs/catpv_loop.log
+#29 15 * * * /home/nicolas/logs/access_logs/pv_pure >pv_pure.log
+#33 14 * * * /home/nicolas/logs/access_logs/fast 20141028 >>/home/nicolas/logs/access_logs/fast.log
+#26 15 * * * /home/nicolas/logs/access_logs/fast_repair 20140926 >>/home/nicolas/logs/access_logs/fast_repair.log
+#06 10 * * * /home/nicolas/logs/access_logs/fast_repair 20140912 >>/home/nicolas/logs/access_logs/fast_repair.log
+#34 22 * * * /home/nicolas/logs/access_logs/fast2 20141126 >>/home/nicolas/logs/access_logs/fast.log
+#1 2 21 * * /home/nicolas/logs/access_logs/fast 20141209 >>/home/nicolas/logs/access_logs/fast.log
+#53 7 22 * * /home/nicolas/logs/access_logs/fast 20141210 >>/home/nicolas/logs/access_logs/fast.log
+#24 2 21 * * /home/nicolas/logs/access_logs/fast_repair 20150116 >>/home/nicolas/logs/access_logs/fast.log
+#34 22 20 * * /home/nicolas/logs/access_logs/fast 20150120 >>/home/nicolas/logs/access_logs/fast.log
+#04 5 21 * * /home/nicolas/logs/access_logs/fast 20150119 >>/home/nicolas/logs/access_logs/fast.log
+#24 10 21 * * /home/nicolas/logs/access_logs/fast_repair 20150117 >>/home/nicolas/logs/access_logs/fast.log
+#11 16 * * * /home/nicolas/logs/access_logs/fast_pv 20150125 >>/home/nicolas/logs/access_logs/fast.log
+#55 4 * * * /home/nicolas/logs/access_logs/fast 20150208 >>/home/nicolas/logs/access_logs/fast.log
+#22 13 30 * * /home/nicolas/logs/access_logs/fast 20150125>>/home/nicolas/logs/access_logs/fast.log
+23 07 * * * /home/nicolas/logs/access_logs/fast >>/home/nicolas/logs/access_logs/fast.log
+#30 23 * * * /home/nicolas/logs/access_logs/fast_repair 20140913 >>/home/nicolas/logs/access_logs/fast_repair.log
+#10 01 * * * /home/nicolas/logs/access_logs/fast_repair 20140914 >>/home/nicolas/logs/access_logs/fast_repair.log
+#30 02 * * * /home/nicolas/logs/access_logs/fast_repair 20140915 >>/home/nicolas/logs/access_logs/fast_repair.log
+#17 10  * * * /home/nicolas/logs/access_logs/fast 20141117 >>/home/nicolas/logs/access_logs/fast.log
+#34 7 23 * * /home/nicolas/logs/access_logs/fast_loop fast_loop.in >>/home/nicolas/logs/access_logs/fast_loop.log
+#48 6 * * * stats_claromusica
+#12 2 * * * cd /home/nicolas/logs/access_logs find . -name 'mx*06??' -exec gzip {} \;   
+#19 12 * * * /home/nicolas/bin/analip 0713
+#18 9 * * * /home/nicolas/bin/analip 0702
+#12 5 * * * /home/nicolas/bin/analip
+#55 5 * * * /home/nicolas/bin/analip_plg
+#49 13 * * * zcat /home/nicolas/logs/access_logs/vc?.prod.s.plugger.com/2014/07/mx.plugger.com-access.log-20140721.gz | grep -v '/proxy\|/static\|/apple-touch\|/ga/' | anonymize.py -d 1 >/home/nicolas/logs/access_logs/0721.a
+#19 12 * * * zcat /home/nicolas/logs/access_logs/vc?.prod.s.plugger.com/2014/07/mx.plugger.com-access.log-20140720.gz | grep -v '/proxy\|/static\|/apple-touch\|/ga/' | anonymize.py -d 1 >/home/nicolas/logs/access_logs/0720.a
+#19 15 * * * zcat /home/nicolas/logs/access_logs/vc?.prod.s.plugger.com/2014/07/mx.plugger.com-access.log-20140719.gz | grep -v '/proxy\|/static\|/apple-touch\|/ga/' | anonymize.py -d 1 >/home/nicolas/logs/access_logs/0719.a
+#05 13 * * * /home/nicolas/bin/analip 0702
+#45 10 * * * /home/nicolas/bin/analip 0703
+#50 10 * * * /home/nicolas/bin/analip 0706
+#59 11 * * * /home/nicolas/bin/analip 0718
+#00 02 * * * /home/nicolas/bin/analip 0712
+#00 03 * * * /home/nicolas/bin/analip 0830
+#00 04 * * * /home/nicolas/bin/analip 0829
+#48 07 * * * cd /home/nicolas/logs/access_logs; time grep -f usr.0708 0708.log >0708.ss.log
+#20 06 * * * /home/nicolas/bin/analip 0709
+#54 05 * * * /home/nicolas/bin/analip 0708
+#45 8 * * * /home/nicolas/bin/analip 0705
+#09 8 * * * /home/nicolas/bin/analip 0609
+#30 20 * * * /home/nicolas/bin/analip 0623
+#34 7 * * * mysql -uroot -ptelcel@iWeb smp -e "source u2u.sql;"
+#34 17 9 * * /home/nicolas/bin/presence
+#17 13 1 * * /home/nicolas/bin/dash
+#18 11 2 * * /home/nicolas/bin/dashperu
+25 7 11 * * /home/nicolas/bin/dashsb
+20 4 11 * * /home/nicolas/bin/dash
+44 6 11 * * /home/nicolas/bin/dashperu
+
+35 9 1 * * /home/nicolas/bin/dashsb
+20 5 1 * * /home/nicolas/bin/dash
+44 12 1 * * /home/nicolas/bin/dashperu
+
+05 11 * * * /home/nicolas/bin/reNR
+56 9 * * * /home/nicolas/bin/reNRsim
+22 9 * * * /home/nicolas/bin/reRet1
+
+30 07 * * * /home/nicolas/bin/reReport
