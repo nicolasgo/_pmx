@@ -1,13 +1,23 @@
 #!/usr/bin/python
 
+'''
+ cat_pv aggregates user sessions files (built using pv) and outputs a csv file
+ 
+ ex: cat_pv $input.pv.csv -g1440 -d -o $input.pv.day.csv
+
+ Copyright (c) 2014, 2015, Pragmex Inc, All Right Reserved
+ http://pragmex.com/
+ 
+'''
+
 # -*- coding: utf-8 -*-
 # <nbformat>3.0</nbformat>
 
 # <codecell>
 
+# Example:
 # time zcat vc?.prod.s.plugger.com/2014/07/mx.plugger.com-access.log-20140719.gz | grep -v 'GET /apple\|GET /ga\|GET /favicon' >20140719&
 # time split -l 16000000 20140918 20140918_&
-
 # pv 20140919_ac >20140919_ac_pv.csv
 
 # <codecell>

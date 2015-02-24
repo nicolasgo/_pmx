@@ -1,8 +1,12 @@
 #!/usr/bin/python
 
-#
-# PV parses the plugger nginx access logs to compute user sessions
-#
+'''
+ PV parses nginx access logs to compute user sessions
+
+ Copyright (c) 2014, 2015, Pragmex Inc, All Right Reserved
+ http://pragmex.com/
+ 
+'''
 
 # TODO: compute POSTs (search, uploads etc)
 
@@ -124,6 +128,7 @@ def parse_log(line):
 
     retcode=0 # invalid, it means that we could not parse this string
     useragent = 'unknown'
+    numbytes=0
     ip='0.0.0.0'
     msisdn=path=''
     time=datetime.datetime(1970,1,1)
@@ -158,6 +163,7 @@ def parse_log(line):
         if len(array)>5 :
             path = array[3]
             retcode = int(array[5])
+            numytes = int(array[6])
         else :
             path = array[1].strip()
             retcode=200 # (assumed to be 200)
@@ -179,7 +185,7 @@ def parse_log(line):
             trace(''+array)
             raise
 
-    return time,msisdn,useragent,path,retcode,binascii.hexlify(socket.inet_aton(ip))
+    return time,msisdn,useragent,path,retcode,numbytes,binascii.hexlify(socket.inet_aton(ip))
 
 # <codecell>
 
@@ -289,12 +295,12 @@ def print_users(output,targetcount=0,limit=None) :
 # time: time of the event
 # pathroot: root of the url path (e.g., /home, /profile etc)
 #
-def add_user(msisdn, time, pathroot, useragent, ip) :
+def add_user(msisdn, time, pathroot, useragent, ip, numbytes) :
     if msisdn > 10 : # msisdn below 1000 are for error codes. all msisdn are fairly large numbers: 525145946440
         users[msisdn] += 1
 
     if msisdn not in userdata : # create the first session entry (min session is 10 secs)
-        session={'time':time,'pv':1,'duration':10,'path':pathroot, 'ip':ip, 'ua':useragent, 'pages':Counter()} 
+        session={'time':time,'pv':1,'duration':10,'path':pathroot, 'ip':ip, 'ua':useragent, 'pages':Counter(), 'bytes':numbytes} 
         session['pages'][pathroot] +=1
 
 #        print '1st session:',session
@@ -310,7 +316,7 @@ def add_user(msisdn, time, pathroot, useragent, ip) :
 #        print 'add_user:',msisdn,time,delta,'secs',pathroot
 
         if delta > session_length : # we need to create a new session
-            newsession={'time':time,'pv':1,'duration':10,'path':pathroot, 'ip':ip, 'ua':useragent, 'pages':Counter()}
+            newsession={'time':time,'pv':1,'duration':10,'path':pathroot, 'ip':ip, 'ua':useragent, 'pages':Counter(), 'bytes':numbytes}
             newsession['pages'][pathroot] +=1
             d['session'].append(newsession)
             d['sessioncount']=d['sessioncount']+1
@@ -322,6 +328,7 @@ def add_user(msisdn, time, pathroot, useragent, ip) :
             session['duration'] = int((time-session['time']).total_seconds())
             session['pv'] +=1
             session['pages'][pathroot] +=1
+            session['bytes'] += numbytes
 
             if ONEUSER :
                 print session
@@ -338,7 +345,7 @@ total =0 # counts the total number of pages with 200 or 302
 
 for line in fileinput.input(files) :
     try :
-        time,msisdn,useragent,path,retcode,ip = parse_log(line)
+        time,msisdn,useragent,path,retcode,numbytes,ip = parse_log(line)
 
         if keep(time,msisdn,useragent,path,retcode) :
             if retcode == 200 or retcode==302: # the logs comprise a mix of hits (like 303 redirects); we keep only the 200
@@ -349,7 +356,7 @@ for line in fileinput.input(files) :
             if pathroot != 0 :
                 hour=time.hour
                 hoursum[hour]=hoursum[hour]+1
-                add_user(msisdn,time,pathroot, useragent, ip)
+                add_user(msisdn,time,pathroot, useragent, ip, numbytes)
                 
             users[0] += 1 # user[0] counts all pageviews regardless if the patg is right
 
