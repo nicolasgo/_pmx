@@ -49,6 +49,14 @@ from optparse import OptionParser
 
 session_gap=30*60 # minimum gap between sessions (in seconds)
 
+# Array 'csv' index constants
+MSISDN = 0
+TIME = 1
+DURATION = 2
+BYTES = 3
+IP = 4
+PV = 5
+VARIETY = 6
 
 in_file='short.csv'
 out_file='short.m.csv'
@@ -108,38 +116,33 @@ def calc_end_time(s):
 
 def sum_sessions(s1, s2):
     if options.dailysum:
-        s1[2] = int(s1[2])+int(s2[2]) # in dailysum mode we simply add the duration times
+        s1[DURATION] = int(s1[DURATION])+int(s2[DURATION]) # in dailysum mode we simply add the duration times
     else:
         # compute new duration
-        start = int(datetime.strptime(s1[1], '%Y-%m-%d %H:%M:%S').strftime("%s"))
+        start = int(datetime.strptime(s1[TIME], '%Y-%m-%d %H:%M:%S').strftime("%s"))
         try:
             end=calc_end_time(s2)
         except:
             print 'Error in sum_session():', s2[1]
             end=calc_end_time(s1)
 
-        if (start+int(s1[2])) < end: # Make sure that s2 is not contained within s1's interval
-            s1[2] = end-start # new duration
+        if (start+int(s1[DURATION])) < end: # Make sure that s2 is not contained within s1's interval
+            s1[DURATION] = end-start # new duration
 
-    s1[4] = int(s1[4])+int(s2[4])
+    s1[BYTES] = int(s1[BYTES])+int(s2[BYTES])
     
-    s1[5] =0
+    s1[VARIETY] = 0
     try:
-	#print s1
-	#print s2
-
-        for i in range(8,len(s1)-1):
+        for i in range(9,len(s1)-1):
             s1[i] = int(s1[i])+int(s2[i])
             if s1[i]>0:
-                s1[5] +=1
+                s1[VARIETY] +=1
     except ValueError as e:
-	print e
-	print s1
-	print s2
+        print e
         print
 
     return s1
-    
+
 # merge the sessions of a given user that intersect
 def merge_sessions(sessions):
     sessions = sorted(sessions, key=operator.itemgetter(1)) # make sure the sessions are sorted by time
@@ -159,7 +162,7 @@ def merge_sessions(sessions):
 
             newlist.append(s)
             end=calc_end_time(s)+session_gap
-            
+           
 #    if len(sessions) != len(newlist):
 #        print len(sessions), len(newlist)
     
@@ -178,10 +181,7 @@ with open(out_file, 'w') as f_out:
         reader = csv.reader(f_in, skipinitialspace=True)
         header = next(reader)
         output.writerow(header) 
-	print files[0]
-
-#        print 'header',header
-
+        
         msisdn=''
         sessions=[]
         for row in reader:
@@ -189,6 +189,7 @@ with open(out_file, 'w') as f_out:
           
             if row[0].startswith('msisdn'): # removes any subsequent header row (due to a cat file1 file2 >thisfile.csv)
                 continue
+
             if msisdn != row[0]:
                 if len(sessions) > 0:
                     sessions= merge_sessions(sessions)
@@ -201,6 +202,7 @@ with open(out_file, 'w') as f_out:
                 sessions.append(row)
             else:
                 sessions.append(row)
+
         if len(sessions) > 0:
             sessions=merge_sessions(sessions)
             output.writerows(sessions) 

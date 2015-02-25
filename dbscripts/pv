@@ -339,11 +339,8 @@ for line in fileinput.input(files) :
     except :
         print 'ERROR:',line
         traceback.print_exc()
-#        fileinput.close()
-#        raise  
 
 # Output
-
 print_users(output) 
 
 
