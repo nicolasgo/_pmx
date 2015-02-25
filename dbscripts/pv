@@ -30,7 +30,7 @@ import re
 #coverage = 100 # a number from 1 to 100 giving the % of users to profile
 #session_length=20*60 # session length in seconds
 
-line_nginx_full = re.compile(r"""\[(?P<dateandtime>\d{2}\/[a-z]{3}\/\d{4} \d{2}:\d{2}:\d{2} (\+|\-)\d{4})\] ((\"(GET|POST|HEAD) )(?P<url>.+)(http\/1\.1")) (?P<statuscode>\d{3}) (?P<bytessent>\d+) (["](?P<referer>(\-)|(.*))["]) (["](?P<useragent>.*)["]) (?P<id>\w+)""", re.IGNORECASE)
+line_nginx_full = re.compile(r"""\[(?P<dateandtime>\d{2}\/[a-z]{3}\/\d{4}:\d{2}:\d{2}:\d{2} (\+|\-)\d{4})\] ((\"(GET|POST|HEAD) )(?P<url>.+)(http\/1\.1")) (?P<statuscode>\d{3}) (?P<bytessent>\d+) (["](?P<referer>(\-)|(.*))["]) (["](?P<useragent>.*)["]) (?P<id>\w+)""", re.IGNORECASE)
 
 pageviews = Counter()
 
@@ -156,7 +156,7 @@ def parse_log(line):
             useragent = dct['useragent']
             
         try:
-            time = datetime.datetime.strptime(time.rpartition(' ')[0],  "%d/%b/%Y %H:%M:%S" )
+            time = datetime.datetime.strptime(time.rpartition(' ')[0],  "%d/%b/%Y:%H:%M:%S" )
         except:
             trace(line)
             raise
