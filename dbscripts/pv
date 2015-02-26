@@ -49,6 +49,7 @@ output = sys.stdout
 
 notneeded = ['apple-touch-icon-57x57.png','static','favicon.ico','ga','facebook','twitter','proxy','apple-touch-icon-72x72.png','apple-touch-icon-114x114.png','apple-touch-icon-144x144.png']
 
+
 ##
 ## Here we go!
 ##
