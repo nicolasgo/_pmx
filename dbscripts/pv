@@ -57,7 +57,7 @@ notneeded = ['apple-touch-icon-57x57.png','static','favicon.ico','ga','facebook'
 total =0 # counts the total number of pages with / or 302
  
 parser = OptionParser()
-parser.add_option('-d', '--debug',
+parser.add_option('-d', '--debug',action="store_true", default=False,
     help='Activates tracing.')
 parser.add_option('-o', '--output',
     help='Specifies the output file.  The default is stdout.')
@@ -103,30 +103,35 @@ if options.session_length and options.session_length != '-':
 
 # The user option has priority over the filter option
 if options.user and options.user != '-':
-  userlist[int(options.user)] += 1
+  userlist[options.user] += 1
   ONEUSER=True
 else:
   if options.filter and options.filter != '-':
     for line in fileinput.input(options.filter):
       fltrd=line.split(':')[0].strip()
       trace('filtering'.join(fltrd))
-      userlist[int(fltrd)] +=1
+      userlist[fltrd] +=1
 
 def trace(line):
   if options.debug:
     sys.stderr.write(line+'\n')
-
-
+#
 # print options:
+#
+if options.debug:
+   trace('DEBUG mode')
+
 trace('coverage: '+str(coverage))
 trace('time intervals: '+str(intervals))
 if ONEUSER:
-  trace('ONEUSER:'.join(str(ONEUSER),' msisdn=',userlist.keys()[0]))
+  trace('ONEUSER: %s msisdn= %s, %s'%(str(ONEUSER),userlist.keys()[0], type(userlist.keys()[0])))
 else:
   trace('ONEUSER: '.join(str(ONEUSER)))
 
 if ONEUSER==False and len(userlist.keys())>0:
   trace('Filter list is filtering'+len(userlist.keys())+'users')
+
+
 
 def parse_log(line):
     line=line.strip()
@@ -164,8 +169,6 @@ def parse_log(line):
 
     return time, msisdn, useragent, path, retcode, numbytes, binascii.hexlify(socket.inet_aton(ip))
 
-# <codecell>
-
 #
 # inc_pageviews increments the number of pageviews for each root and store that in the pageviews Counter
 # inputs:
@@ -198,8 +201,6 @@ def inc_pageviews(path):
 
     return root
 
-# <codecell>
-
 # 
 # keep() applies the desired filter and returns True if we should monitor that record
 #
@@ -220,11 +221,9 @@ def keep(time,msisdn,useragent,path,retcode):
     if keep_it:
         # Additional filter to keep only msisdn in the --filter list (option)
         keep_it= len(userlist)==0 or (len(userlist)>0 and userlist[msisdn] != 0)
-#        print 'F4',keep_it,len(userlist)
+	#trace('msisdn: %s, keep=%i'%(msisdn,keep_it))
         
     return keep_it
-
-# <codecell>
 
 pages_to_count=['inbox', 'mymedia', 'conversaciones', 'activities', 'home', 'friends', 'info', 'media', 'upload', 'avatar', 'publish', 'help']
 def print_pagecounts(output, pages):
@@ -283,7 +282,8 @@ def add_user(msisdn, time, pathroot, useragent, ip, numbytes):
 
     if msisdn not in userdata: # create the first session entry (min session is 10 secs)
         session={'time':time,'pv':1,'duration':10,'path':pathroot, 'ip':ip, 'ua':useragent, 'pages':Counter(), 'bytes':numbytes} 
-        session['pages'][pathroot] +=1
+        if pathroot is not None:
+            session['pages'][pathroot] +=1
 
 #        print '1st session:',session
         userdata[msisdn]={'time':time,'sessioncount':1,'session':[session], 'total_duration':0}
@@ -299,7 +299,8 @@ def add_user(msisdn, time, pathroot, useragent, ip, numbytes):
 
         if delta > session_length: # we need to create a new session
             newsession={'time':time,'pv':1,'duration':10,'path':pathroot, 'ip':ip, 'ua':useragent, 'pages':Counter(), 'bytes':numbytes}
-            newsession['pages'][pathroot] +=1
+            if pathroot is not None:
+                newsession['pages'][pathroot] +=1
             d['session'].append(newsession)
             d['sessioncount']=d['sessioncount']+1
             if ONEUSER: # in ONEUSER mode, the tool is more verbose and tracks all user moves
@@ -308,8 +309,9 @@ def add_user(msisdn, time, pathroot, useragent, ip, numbytes):
             d['total_duration'] += delta
             session=d['session'][-1] # get the last session
             session['duration'] = int((time-session['time']).total_seconds())
-            session['pv'] +=1
-            session['pages'][pathroot] +=1
+            if pathroot is not None:
+                session['pv'] +=1
+                session['pages'][pathroot] +=1
             session['bytes'] += numbytes
 
             if ONEUSER:
@@ -333,7 +335,7 @@ for line in fileinput.input(files):
 
             pathroot=inc_pageviews(path)
             
-            if pathroot != None:
+            if pathroot is not None:
                 hour=time.hour
                 hoursum[hour] += 1
                 
@@ -344,6 +346,7 @@ for line in fileinput.input(files):
     except:
         print 'ERROR:',line
         traceback.print_exc()
+	raise
 
 # Output
 print_users(output) 
