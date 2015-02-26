@@ -88,7 +88,7 @@ if options.coverage and options.coverage != '-':
 
 # Options to 
 if options.time and options.time != '-':
-  for s in options.time.split(',') :
+  for s in options.time.split(','):
     t=s.split('-')
     trace( t )
     if len(t)==2:
@@ -138,7 +138,7 @@ def parse_log(line):
     time=datetime.datetime(1970,1,1)
     array=[]
 
-    if not (line.startswith('#') or len(line)==0) :
+    if not (line.startswith('#') or len(line)==0):
         first = line.split(' - ')
 
         ip = first[0].split(' ')[0]
@@ -169,13 +169,22 @@ def parse_log(line):
 # inc_pageviews increments the number of pageviews for each root and store that in the pageviews Counter
 # inputs:
 #    - path: the url path (e.g., /profile/22084494/inbox)
-def inc_pageviews(path) :
+def inc_pageviews(path):
     path= path.split('/')
     root=path[1] # all paths start with a '/', so item #1 is what is after the first slash
-    if root not in notneeded:
-        if root.startswith('?') :
+    
+    if root in notneeded: # we do not need to count this request as a pageview
+        root=None
+
+    # TODO: we will need to add a elif to check if this is a media request. In that case, we do not count this as a pageview either.
+    # or should we move this elsewhere??
+    
+    else:
+        if root.startswith('?'):
             root='__qparam__'
-        elif root.startswith('profile') : #profile is too vague so we need to add the 3rd component
+        elif root.startswith('profile'): 
+            # profile is too vague so we need to add the 3rd component. 
+            # The 2nd component is for the user_id like in /profile/17548/inbox, /profile/17548/activities, /profile/17548/media
             try:
                 part='/'+path[3].split('?')[0]
                 root=part[1:]
@@ -186,9 +195,6 @@ def inc_pageviews(path) :
 
         pageviews[root] += 1
 
-    else :
-        root=0
-
     return root
 
 # <codecell>
@@ -196,21 +202,21 @@ def inc_pageviews(path) :
 # 
 # keep() applies the desired filter and returns True if we should monitor that record
 #
-def keep(time,msisdn,useragent,path,retcode) :
+def keep(time,msisdn,useragent,path,retcode):
     keep_it=True
     if retcode == 0 or retcode <> 200:
         keep_it=False
 #        print 'F1'
 
     # filter out any hour that was not mentioned in the intervals given by the -time option
-    if keep_it and len(intervals) > 0 :
+    if keep_it and len(intervals) > 0:
         keep_it=(time.hour in intervals)
 #        print 'F2'
     
-#    if keep_it :
+#    if keep_it:
 #        keep_it=(int(str(msisdn/47)[-2:]) < coverage) # is True when the last 2 msisdn digits are lower than desired coverage
  
-    if keep_it :
+    if keep_it:
         # Additional filter to keep only msisdn in the --filter list (option)
         keep_it= len(userlist)==0 or (len(userlist)>0 and userlist[msisdn] != 0)
 #        print 'F4',keep_it,len(userlist)
@@ -220,25 +226,25 @@ def keep(time,msisdn,useragent,path,retcode) :
 # <codecell>
 
 pages_to_count=['inbox', 'mymedia', 'conversaciones', 'activities', 'home', 'friends', 'info', 'media', 'upload', 'avatar', 'publish', 'help']
-def print_pagecounts(output, pages) :
-    for k in pages_to_count :
+def print_pagecounts(output, pages):
+    for k in pages_to_count:
         print >>output, '%d,'%(pages[k]),
     
-def print_header(output) :
+def print_header(output):
     print >>output, 'msisdn, time, duration, bytes, ip, pv, variety, landpage, device,',
-    for i in range(0,len(pages_to_count)) :
+    for i in range(0,len(pages_to_count)):
         print >>output, '%s,'%(pages_to_count[i][:5]),
     print >>output, 'ua'
         
 
-def print_oneuser(output, msisdn, count) :
+def print_oneuser(output, msisdn, count):
     d=userdata[msisdn]
     d['session']= sorted(d['session'],key=lambda s: s['time']) # sort sessions by time otherwise this is messy
 
-    for s in d['session'] :
+    for s in d['session']:
         device='0'
         idx=s['ua'].find('ndroid')
-        if idx>0 :
+        if idx>0:
             device=s['ua'][idx-1:idx+11].strip(',')
             
         print >>output, '%s, %s, %s, %d, %8s,'%(msisdn,s['time'], s['duration'], s['bytes'], s['ip'] ),
@@ -253,15 +259,14 @@ def print_oneuser(output, msisdn, count) :
 #
 # output is csv-like
 # 
-def print_users(output,targetcount=0,limit=None) :
+def print_users(output,targetcount=0,limit=None):
     print_header(output) # csv header
 
-    for msisdn, count in users.most_common(limit) :
+    for msisdn, count in users.most_common(limit):
         if msisdn > 10: # msisdn <1000 are for internal use.
-            if count < targetcount :
+            if count < targetcount:
                 break
             print_oneuser(output,msisdn,count)
-
 
 
 
@@ -269,36 +274,36 @@ def print_users(output,targetcount=0,limit=None) :
 # add_user() to the users Counter and computes the session
 # msisdn: msisdn of the user
 # time: time of the event
-# pathroot: root of the url path (e.g., /home, /profile etc)
+# pathroot: root of the url path (e.g., /home, /profile etc). Set to None will only compute the numbytes and not the pageview.
 #
-def add_user(msisdn, time, pathroot, useragent, ip, numbytes) :
-    if msisdn > 10 : # msisdn below 1000 are for error codes. all msisdn are fairly large numbers: 525145946440
+def add_user(msisdn, time, pathroot, useragent, ip, numbytes):
+    if msisdn > 10: # msisdn below 1000 are for error codes. all msisdn are fairly large numbers: 525145946440
         users[msisdn] += 1
 
-    if msisdn not in userdata : # create the first session entry (min session is 10 secs)
+    if msisdn not in userdata: # create the first session entry (min session is 10 secs)
         session={'time':time,'pv':1,'duration':10,'path':pathroot, 'ip':ip, 'ua':useragent, 'pages':Counter(), 'bytes':numbytes} 
         session['pages'][pathroot] +=1
 
 #        print '1st session:',session
         userdata[msisdn]={'time':time,'sessioncount':1,'session':[session], 'total_duration':0}
 
-    else : 
+    else: 
         d=userdata[msisdn]
         delta=(time-d['time']).total_seconds()
-        if delta < 0 : # Kludge: delta may be negative because the input logs is the concatenation of multiple daily logs...
+        if delta < 0: # Kludge: delta may be negative because the input logs is the concatenation of multiple daily logs...
             delta = session_length*2 # ...in that case, we must ensure that a new session is created.
         d['time']=time
 
 #        print 'add_user:',msisdn,time,delta,'secs',pathroot
 
-        if delta > session_length : # we need to create a new session
+        if delta > session_length: # we need to create a new session
             newsession={'time':time,'pv':1,'duration':10,'path':pathroot, 'ip':ip, 'ua':useragent, 'pages':Counter(), 'bytes':numbytes}
             newsession['pages'][pathroot] +=1
             d['session'].append(newsession)
             d['sessioncount']=d['sessioncount']+1
-            if ONEUSER : # in ONEUSER mode, the tool is more verbose and tracks all user moves
+            if ONEUSER: # in ONEUSER mode, the tool is more verbose and tracks all user moves
                 print 'new session:',newsession
-        else : # we continue the current session
+        else: # we continue the current session
             d['total_duration'] += delta
             session=d['session'][-1] # get the last session
             session['duration'] = int((time-session['time']).total_seconds())
@@ -306,11 +311,9 @@ def add_user(msisdn, time, pathroot, useragent, ip, numbytes) :
             session['pages'][pathroot] +=1
             session['bytes'] += numbytes
 
-            if ONEUSER :
+            if ONEUSER:
                 print session
 
-
-# <headingcell level=2>
 
 # Input parameters for PV
 
@@ -319,24 +322,25 @@ def add_user(msisdn, time, pathroot, useragent, ip, numbytes) :
 ##
 total =0 # counts the total number of pages with 200 or 302
 
-for line in fileinput.input(files) :
-    try :
+for line in fileinput.input(files):
+    try:
         time,msisdn,useragent,path,retcode,numbytes,ip = parse_log(line)
 
-        if keep(time,msisdn,useragent,path,retcode) :
+        if keep(time,msisdn,useragent,path,retcode):
             if retcode == 200 or retcode==302: # the logs comprise a mix of hits (like 303 redirects); we keep only the 200
                 total += 1
 
             pathroot=inc_pageviews(path)
             
-            if pathroot != 0 :
+            if pathroot != None:
                 hour=time.hour
-                hoursum[hour]=hoursum[hour]+1
-                add_user(msisdn,time,pathroot, useragent, ip, numbytes)
+                hoursum[hour] += 1
+                
+            add_user(msisdn,time,pathroot, useragent, ip, numbytes)
                 
             users[0] += 1 # user[0] counts all pageviews regardless if the patg is right
 
-    except :
+    except:
         print 'ERROR:',line
         traceback.print_exc()
 
