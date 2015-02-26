@@ -149,9 +149,14 @@ def parse_log(line):
 
         ip = first[0].split(' ')[0]
 
-        match = line_nginx_full.search(first[1])
+        try:
+            match = line_nginx_full.search(first[1])
+        except:
+            trace(line)
+            raise
         if not match:
-            print "^^^^^^^^^ No match"
+            trace("^^^^^^^^^ No match with:")
+            trace(line)
         else:
             dct = match.groupdict()
             time = dct['dateandtime']
@@ -161,11 +166,11 @@ def parse_log(line):
             retcode = int(dct['statuscode'])
             useragent = dct['useragent']
             
-        try:
-            time = datetime.datetime.strptime(time.rpartition(' ')[0],  "%d/%b/%Y:%H:%M:%S" )
-        except:
-            trace(line)
-            raise
+            try:
+              time = datetime.datetime.strptime(time.rpartition(' ')[0],  "%d/%b/%Y:%H:%M:%S" )
+            except:
+              trace(line)
+              raise
 
     return time, msisdn, useragent, path, retcode, numbytes, binascii.hexlify(socket.inet_aton(ip))
 
