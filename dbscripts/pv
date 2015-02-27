@@ -125,8 +125,6 @@ trace('coverage: '+str(coverage))
 trace('time intervals: '+str(intervals))
 if ONEUSER:
   trace('ONEUSER: %s msisdn= %s, %s'%(str(ONEUSER),userlist.keys()[0], type(userlist.keys()[0])))
-else:
-  trace('ONEUSER: '.join(str(ONEUSER)))
 
 if ONEUSER==False and len(userlist.keys())>0:
   trace('Filter list is filtering'+len(userlist.keys())+'users')
@@ -257,7 +255,7 @@ def print_oneuser(output, msisdn, count):
             print_pagecounts(output, s['pages'])
             print >>output, '\"'+s['ua']+'\"'
         except:
-            trace('exception with session[%s]',s)
+            trace('exception with session[%s]'%s)
 
 
 # 
