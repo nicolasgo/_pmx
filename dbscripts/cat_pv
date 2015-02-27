@@ -168,8 +168,6 @@ def merge_sessions(sessions):
     
     return newlist
 
-# <codecell>
-
 with open(out_file, 'w') as f_out:
     output = csv.writer(f_out, delimiter=',', quoting=csv.QUOTE_MINIMAL)
 
@@ -179,15 +177,16 @@ with open(out_file, 'w') as f_out:
     linenum=0
     with open(files[0]) as f_in:
         reader = csv.reader(f_in, skipinitialspace=True)
-        header = next(reader)
-        output.writerow(header) 
+# BUG        header = next(reader)
+        output.writerow(['msisdn','time','duration''bytes', 'ip', 'pv', 'variety', 'landpage', 'device', 
+            'inbox', 'mymed', 'conve', 'activ', 'home', 'frien', 'info', 'media', 'uploa', 'avata', 'publi', 'help', 'ua']) 
         
         msisdn=''
         sessions=[]
         for row in reader:
             linenum+=1
           
-            if row[0].startswith('msisdn'): # removes any subsequent header row (due to a cat file1 file2 >thisfile.csv)
+            if row[0].startswith('msisdn'): # skip header rows
                 continue
 
             if msisdn != row[0]:
