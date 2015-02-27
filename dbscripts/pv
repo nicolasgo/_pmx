@@ -246,15 +246,18 @@ def print_oneuser(output, msisdn, count):
     d['session']= sorted(d['session'],key=lambda s: s['time']) # sort sessions by time otherwise this is messy
 
     for s in d['session']:
-        device='0'
-        idx=s['ua'].find('ndroid')
-        if idx>0:
-            device=s['ua'][idx-1:idx+11].strip(',')
-            
-        print >>output, '%s, %s, %s, %d, %8s,'%(msisdn,s['time'], s['duration'], s['bytes'], s['ip'] ),
-        print >>output, '%3d,%d,%-6s,%s,' % (s['pv'], len(s['pages']), '/'+s['path'][:5],device),
-        print_pagecounts(output, s['pages'])
-        print >>output, '\"'+s['ua']+'\"'
+        try:
+            device='0'
+            idx=s['ua'].find('ndroid')
+            if idx>0:
+                device=s['ua'][idx-1:idx+11].strip(',')
+        
+            print >>output, '%s, %s, %s, %d, %8s,'%(msisdn,s['time'], s['duration'], s['bytes'], s['ip'] ),
+            print >>output, '%3d,%d,%-6s,%s,' % (s['pv'], len(s['pages']), '/'+s['path'][:5],device),
+            print_pagecounts(output, s['pages'])
+            print >>output, '\"'+s['ua']+'\"'
+        except:
+            trace('exception with session[%s]',s)
 
 
 # 
