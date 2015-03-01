@@ -249,9 +249,13 @@ def print_oneuser(output, msisdn, count):
             idx=s['ua'].find('ndroid')
             if idx>0:
                 device=s['ua'][idx-1:idx+11].strip(',')
+            
+            path=s['path']
+            if path is None:
+                path = ''
         
             print >>output, '%s, %s, %s, %d, %8s,'%(msisdn,s['time'], s['duration'], s['bytes'], s['ip'] ),
-            print >>output, '%3d,%d,%-6s,%s,' % (s['pv'], len(s['pages']), '/'+s['path'][:5],device),
+            print >>output, '%3d,%d,%-.6s,%s,' % (s['pv'], len(s['pages']), '/'+path,device),
             print_pagecounts(output, s['pages'])
             print >>output, '\"'+s['ua']+'\"'
         except:
