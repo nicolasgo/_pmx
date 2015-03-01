@@ -3,3 +3,4 @@
 data/*
 *.pyc
 code/*.pyc
+dbscripts/.swp
