@@ -139,6 +139,11 @@ def sum_sessions(s1, s2):
                 s1[VARIETY] +=1
     except ValueError as e:
         print 'error2 in sum_sessions',e
+        print s1
+        print s2
+        for i in range(9,len(s1)-1):
+            print s2[i],
+        print
         raise #print
 
     return s1
