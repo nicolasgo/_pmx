@@ -183,7 +183,7 @@ with open(out_file, 'w') as f_out:
     with open(files[0]) as f_in:
         reader = csv.reader(f_in, skipinitialspace=True)
 # BUG        header = next(reader)
-        output.writerow(['msisdn','time','duration''bytes', 'ip', 'pv', 'variety', 'landpage', 'device', 
+        output.writerow(['msisdn','time','duration','bytes', 'ip', 'pv', 'variety', 'landpage', 'device', 
             'inbox', 'mymed', 'conve', 'activ', 'home', 'frien', 'info', 'media', 'uploa', 'avata', 'publi', 'help', 'ua']) 
         
         msisdn=''
