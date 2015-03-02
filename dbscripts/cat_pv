@@ -129,6 +129,7 @@ def sum_sessions(s1, s2):
         if (start+int(s1[DURATION])) < end: # Make sure that s2 is not contained within s1's interval
             s1[DURATION] = end-start # new duration
 
+    s1[PV] = int(s1[PV])+int(s2[PV])
     s1[BYTES] = int(s1[BYTES])+int(s2[BYTES])
     
     s1[VARIETY] = 0
