@@ -6,3 +6,5 @@ code/*.pyc
 dbscripts/.swp
 
 *.pyc
+
+*.pyc
